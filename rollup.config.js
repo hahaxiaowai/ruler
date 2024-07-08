@@ -10,8 +10,8 @@ import pkg from "./package.json" assert { type: "json" };
 export default {
   input: 'src/index.js',
   output: {
-    file: `dist/${pkg.name}.js`,
-    format: 'es',
+    file: `dist/${pkg.name}.umd.js`,
+    format: 'umd',
     name: `${pkg.name}`,
   },
   plugins: [

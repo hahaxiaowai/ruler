@@ -47,15 +47,16 @@ var Ruler = /*#__PURE__*/function () {
     this.dom = document.getElementById(id);
     if (!this.dom) throw new Error('请传入canvas的id');
     if (this.dom.getContext) this.ctx = this.dom.getContext('2d');
-    this.initRuler(options);
-    this.drawRuler();
-    if (options.isListener) {
-      this.addListener();
+    this._initRuler(options);
+    this._drawRuler();
+    if (this.listener) {
+      this._addListener();
     }
   }
   return _createClass(Ruler, [{
-    key: "initRuler",
-    value: function initRuler(options) {
+    key: "_initRuler",
+    value: function _initRuler(options) {
+      var _options$grid, _options$gridChange, _options$dragButton, _options$listener;
       // canvas
       if (this.dom.width === 300 && this.dom.height === 150) {
         this.dom.width = this.dom.parentElement.clientWidth;
@@ -66,9 +67,9 @@ var Ruler = /*#__PURE__*/function () {
         this.dom.height = options.height;
       }
       // grid
-      this.grid = options.grid;
+      this.grid = (_options$grid = options.grid) !== null && _options$grid !== void 0 ? _options$grid : true;
       this._gridSize = 50;
-      this.gridChange = options.gridChange || true;
+      this.gridChange = (_options$gridChange = options.gridChange) !== null && _options$gridChange !== void 0 ? _options$gridChange : true;
       // ruler
       this.rulerWidth = options.rulerWidth || 20;
       this.rulerColor = options.rulerColor || "rgba(255,255,255,0.8)";
@@ -88,8 +89,18 @@ var Ruler = /*#__PURE__*/function () {
       }
       // event
       this._isDrag = false;
-      this.dragButton = options.dragButton !== undefined ? options.dragButton : 0;
+      this.dragButton = (_options$dragButton = options.dragButton) !== null && _options$dragButton !== void 0 ? _options$dragButton : 0;
       this._dragStartMouseCoord = [];
+      this.listener = (_options$listener = options.listener) !== null && _options$listener !== void 0 ? _options$listener : true;
+      this._events = {
+        mouseDown: '',
+        mouseMove: '',
+        mouseUp: '',
+        wheel: '',
+        three: ''
+      };
+      this._isBindThree = false;
+      this._controls = null;
       // translate
       this.x = 0;
       this.y = 0;
@@ -101,24 +112,23 @@ var Ruler = /*#__PURE__*/function () {
   }, {
     key: "reDraw",
     value: function reDraw(x, y, zoom) {
-      console.log(zoom);
-      this.zoom = zoom;
-      this.x = x;
-      this.y = y;
+      this.zoom = zoom !== null && zoom !== void 0 ? zoom : this.zoom;
+      this.x = x !== null && x !== void 0 ? x : this.x;
+      this.y = y !== null && y !== void 0 ? y : this.y;
       this.ctx.clearRect(0, 0, this.dom.width, this.dom.height);
-      this.drawRuler();
+      this._drawRuler();
     }
   }, {
-    key: "drawRuler",
-    value: function drawRuler() {
+    key: "_drawRuler",
+    value: function _drawRuler() {
       this.ctx.fillStyle = this.rulerColor;
       this.ctx.fillRect(0, 0, this.dom.width, this.rulerWidth);
       this.ctx.fillRect(0, 0, this.rulerWidth, this.dom.height);
-      var _this$getStartAndEnd = this.getStartAndEnd(),
-        startX = _this$getStartAndEnd.startX,
-        startY = _this$getStartAndEnd.startY,
-        startXNum = _this$getStartAndEnd.startXNum,
-        startYNum = _this$getStartAndEnd.startYNum;
+      var _this$_getStartAndEnd = this._getStartAndEnd(),
+        startX = _this$_getStartAndEnd.startX,
+        startY = _this$_getStartAndEnd.startY,
+        startXNum = _this$_getStartAndEnd.startXNum,
+        startYNum = _this$_getStartAndEnd.startYNum;
       this.ctx.textAlign = 'center';
       var margin = this.rulerWidth - this.scaleHeight;
       var drawX = startX;
@@ -161,8 +171,8 @@ var Ruler = /*#__PURE__*/function () {
       }
     }
   }, {
-    key: "getStartAndEnd",
-    value: function getStartAndEnd() {
+    key: "_getStartAndEnd",
+    value: function _getStartAndEnd() {
       var gridSize = this._gridSize;
       var screenX = this.x + this.dom.width / 2;
       var screenY = this.y + this.dom.height / 2;
@@ -192,55 +202,52 @@ var Ruler = /*#__PURE__*/function () {
   }, {
     key: "bindThreeCamera",
     value: function bindThreeCamera(camera, controls, origin) {
-      var _this = this;
-      var onPositionChange = function onPositionChange(o) {
-        var coords = origin.project(camera);
-        var halfWidth = _this.dom.width / 2;
-        var halfHeight = _this.dom.height / 2;
-        var originX = -(coords.x * halfWidth + halfWidth);
-        var originY = -(coords.y * halfHeight + halfHeight);
-        _this.zoom = camera.zoom;
-        if (_this.zoom <= 0) _this.zoom = _this.zoomStep;
-        _this._gridSize = _this.zoom * _this._scaleStepOrigin;
-        if (_this.gridChange) {
-          var step = _this.getScaleStep();
-          _this._scaleStep = step;
-          _this._gridSize = _this._scaleStep * _this.zoom;
-        }
-        _this.reDraw(-originX - halfWidth, originY + halfHeight, _this.zoom);
-      };
-      controls.addEventListener('change', function (e) {
-        onPositionChange();
-      });
+      this._isBindThree = true;
+      this.controls = controls;
+      this._events.three = this._threeEvent.bind(this, camera, origin);
+      controls.addEventListener('change', this._events.three);
     }
   }, {
-    key: "addListener",
-    value: function addListener() {
-      var _this2 = this;
-      this.dom.addEventListener('mousedown', function (e) {
-        _this2.mouseDownEvent(e);
-      });
-      this.dom.addEventListener('mousemove', function (e) {
-        _this2.mouseMoveEvent(e);
-      });
-      this.dom.addEventListener('mouseup', function (e) {
-        _this2.mouseUpEvent(e);
-      });
-      this.dom.addEventListener('wheel', function (e) {
-        _this2.wheelEvent(e);
-      });
+    key: "_threeEvent",
+    value: function _threeEvent(camera, origin) {
+      var coords = origin.project(camera);
+      var halfWidth = this.dom.width / 2;
+      var halfHeight = this.dom.height / 2;
+      var originX = -(coords.x * halfWidth + halfWidth);
+      var originY = -(coords.y * halfHeight + halfHeight);
+      this.zoom = camera.zoom;
+      if (this.zoom <= 0) this.zoom = this.zoomStep;
+      this._gridSize = this.zoom * this._scaleStepOrigin;
+      if (this.gridChange) {
+        var step = this._getScaleStep();
+        this._scaleStep = step;
+        this._gridSize = this._scaleStep * this.zoom;
+      }
+      this.reDraw(-originX - halfWidth, originY + halfHeight, this.zoom);
     }
   }, {
-    key: "mouseDownEvent",
-    value: function mouseDownEvent(e) {
+    key: "_addListener",
+    value: function _addListener() {
+      this._events.mouseDown = this._mouseDownEvent.bind(this);
+      this._events.mouseMove = this._mouseMoveEvent.bind(this);
+      this._events.mouseUp = this._mouseUpEvent.bind(this);
+      this._events.wheel = this._wheelEvent.bind(this);
+      this.dom.addEventListener('mousedown', this._events.mouseDown);
+      this.dom.addEventListener('mousemove', this._events.mouseMove);
+      this.dom.addEventListener('mouseup', this._events.mouseUp);
+      this.dom.addEventListener('wheel', this._events.wheel);
+    }
+  }, {
+    key: "_mouseDownEvent",
+    value: function _mouseDownEvent(e) {
       e.preventDefault();
       if (!(e.button === this.dragButton)) return;
       this._isDrag = true;
       this._dragStartMouseCoord = [e.offsetX, e.offsetY];
     }
   }, {
-    key: "mouseMoveEvent",
-    value: function mouseMoveEvent(e) {
+    key: "_mouseMoveEvent",
+    value: function _mouseMoveEvent(e) {
       e.preventDefault();
       if (!this._isDrag) return;
       var dx = e.offsetX - this._dragStartMouseCoord[0];
@@ -253,13 +260,13 @@ var Ruler = /*#__PURE__*/function () {
       }
     }
   }, {
-    key: "mouseUpEvent",
-    value: function mouseUpEvent(e) {
+    key: "_mouseUpEvent",
+    value: function _mouseUpEvent(e) {
       this._isDrag = false;
     }
   }, {
-    key: "wheelEvent",
-    value: function wheelEvent(e) {
+    key: "_wheelEvent",
+    value: function _wheelEvent(e) {
       if (e.deltaY > 0) {
         // 缩小
         this.zoom -= this.zoomStep;
@@ -284,15 +291,15 @@ var Ruler = /*#__PURE__*/function () {
       var nx = this.x + dx * this.zoomStep;
       var ny = this.y + dy * this.zoomStep;
       if (this.gridChange) {
-        var step = this.getScaleStep();
+        var step = this._getScaleStep();
         this._scaleStep = step;
         this._gridSize = this._scaleStep * this.zoom;
       }
       this.reDraw(nx, ny, this.zoom);
     }
   }, {
-    key: "getScaleStep",
-    value: function getScaleStep() {
+    key: "_getScaleStep",
+    value: function _getScaleStep() {
       var origin = this._scaleStepList.indexOf(this._scaleStepOrigin);
       for (var i = 1; i < this._zoomRatioList.length; i++) {
         if (this.zoom >= this._zoomRatioList[i - 1] && this.zoom < this._zoomRatioList[i]) {
@@ -310,6 +317,16 @@ var Ruler = /*#__PURE__*/function () {
         }
       }
       return this._scaleStep;
+    }
+  }, {
+    key: "destroy",
+    value: function destroy() {
+      if (this.listener) {
+        this.dom.removeEventListener('mousedown', this._events.mouseDown);
+        this.dom.removeEventListener('mousemove', this._events.mouseMove);
+        this.dom.removeEventListener('mouseup', this._events.mouseUp);
+        this.dom.removeEventListener('wheel', this._events.wheel);
+      }
     }
   }]);
 }();

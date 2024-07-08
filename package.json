@@ -1,5 +1,5 @@
 {
-  "name": "@night-tea/ruler.js",
+  "name": "@night-tea/ruler",
   "version": "1.0.0",
   "description": "原生canvas绘制标尺，可以进行平移与缩放，js库，所以不受前端框架限制，适用于各个项目中",
   "main": "src/index.js",
@@ -15,11 +15,14 @@
   ],
   "files": [
     "dist",
-    "src/index.js"
+    "src"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hahaxiaowai/ruler.js.git"
+    "url": "https://github.com/hahaxiaowai/ruler.git"
   },
   "author": "night tea(hahaxiaowai)",
   "license": "MIT",
