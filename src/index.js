@@ -145,22 +145,6 @@ class Ruler {
     this._isBindThree = true;
     this.controls = controls;
     this._events.three = this._threeEvent.bind(this, camera, origin);
-    // const onPositionChange = (o) => {
-    //   const coords = origin.project(camera);
-    //   const halfWidth = this.dom.width / 2
-    //   const halfHeight = this.dom.height / 2
-    //   const originX = -(coords.x * halfWidth + halfWidth)
-    //   const originY = -(coords.y * halfHeight + halfHeight)
-    //   this.zoom = camera.zoom
-    //   if (this.zoom <= 0) this.zoom = this.zoomStep
-    //   this._gridSize = this.zoom * this._scaleStepOrigin;
-    //   if (this.gridChange) {
-    //     const step = this._getScaleStep();
-    //     this._scaleStep = step;
-    //     this._gridSize = this._scaleStep * this.zoom;
-    //   }
-    //   this.reDraw(-originX - halfWidth, originY + halfHeight, this.zoom)
-    // }
     controls.addEventListener('change', this._events.three);
   }
   _threeEvent(camera, origin) {

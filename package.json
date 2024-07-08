@@ -1,24 +1,29 @@
 {
-  "name": "ruler",
+  "name": "@night-tea/ruler.js",
   "version": "1.0.0",
-  "description": "库初始框架",
-  "main": "rollup.config.js",
+  "description": "原生canvas绘制标尺，可以进行平移与缩放，js库，所以不受前端框架限制，适用于各个项目中",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "build": "rollup -c"
   },
   "keywords": [
     "js",
-    "rollup"
+    "ruler",
+    "canvas",
+    "three"
+  ],
+  "files": [
+    "dist",
+    "src/index.js"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hahaxiaowai/sdk-rollup-init.git"
+    "url": "https://github.com/hahaxiaowai/ruler.js.git"
   },
-  "author": "night tea",
-  "license": "ISC",
-  "dependencies": {
-  },
+  "author": "night tea(hahaxiaowai)",
+  "license": "MIT",
+  "dependencies": {},
   "devDependencies": {
     "@babel/runtime": "^7.24.7",
     "@babel/core": "^7.24.7",
