@@ -1,0 +1,40 @@
+{
+  "name": "ruler",
+  "version": "1.0.0",
+  "description": "库初始框架",
+  "main": "rollup.config.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "keywords": [
+    "js",
+    "rollup"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hahaxiaowai/sdk-rollup-init.git"
+  },
+  "author": "night tea",
+  "license": "ISC",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@babel/runtime": "^7.24.7",
+    "@babel/core": "^7.24.7",
+    "@babel/plugin-transform-runtime": "^7.24.7",
+    "@babel/preset-env": "^7.24.7",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^24.1.0",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "13.2.0",
+    "@rollup/plugin-terser": "^0.3.0",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "rollup": "^4.18.0",
+    "rollup-obfuscator": "^3.0.2",
+    "rollup-plugin-uglify": "^6.0.4"
+  }
+}

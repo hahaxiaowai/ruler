@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruler.js</title>
+  </head>
+  <style>
+    *,
+    body {
+      margin: 0px;
+      padding: 0px;
+    }
+    .top {
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #rulerBox {
+      position: absolute;
+      top: 0;
+    }
+    .source {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      z-index: 999;
+      color: black;
+      font-size: 1.3rem;
+      background-color: rgb(221, 216, 216);
+    }
+  </style>
+  <body>
+    <div class="top">
+      <a class="source" href="http://localhost:3000/" target="_blank">源码</a>
+      <canvas id="rulerBox"></canvas>
+    </div>
+  </body>
+  <script type="module">
+    import Ruler from "../src/index.js";
+    console.log(Ruler);
+    const ruler = new Ruler("rulerBox");
+  </script>
+</html>
