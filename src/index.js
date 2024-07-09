@@ -143,7 +143,7 @@ class Ruler {
   }
   bindThreeCamera(camera, controls, origin) {
     this._isBindThree = true;
-    this.controls = controls;
+    this._controls = controls;
     this._events.three = this._threeEvent.bind(this, camera, origin);
     controls.addEventListener('change', this._events.three);
   }
@@ -252,6 +252,10 @@ class Ruler {
       this.dom.removeEventListener('mousemove', this._events.mouseMove);
       this.dom.removeEventListener('mouseup', this._events.mouseUp);
       this.dom.removeEventListener('wheel', this._events.wheel)
+    }
+    if(this._isBindThree){
+      this._controls.removeEventListener('change',this._events.three)
+      this._controls = null;
     }
   }
 }
