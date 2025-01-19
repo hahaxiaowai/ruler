@@ -23,6 +23,7 @@ class Ruler {
     // grid
     this.grid = options.grid ?? true;
     this._gridSize = 50;
+    this.minGridSize = options.minGridSize ?? 10;
     this.gridChange = options.gridChange ?? true;
     // ruler
     this.rulerWidth = options.rulerWidth || 20;
@@ -34,7 +35,12 @@ class Ruler {
     this._scaleStepList = [1, 2, 5, 10, 25, 50, 100, 150, 300, 750, 1500]; // 必须从小到大
     this._scaleStep = 50; // 必须是scaleStepList中的一个 标尺上的数值
     this._scaleStepOrigin = this._scaleStep
-
+    // zoom
+    this.zoom = 1;
+    this._scale = 1;
+    this.minZoom = 0;
+    this.maxZoom = Infinity;
+    this.zoomSpeed = options.zoomSpeed || 1;
     this._zoomRatioList = [];
     for (let i = 0; i < this._scaleStepList.length; i++) {
       this._zoomRatioList.push(this._scaleStepList[i] / this._scaleStepOrigin);
@@ -60,10 +66,6 @@ class Ruler {
     // translate
     this.x = 0;
     this.y = 0;
-    // scale
-    this._zoomOrigin = 1;
-    this.zoom = 1;
-    this.zoomStep = options.zoomStep || 0.2;
 
   }
   reDraw(x, y, zoom) {
@@ -153,13 +155,19 @@ class Ruler {
     const halfHeight = this.dom.height / 2
     const originX = -(coords.x * halfWidth + halfWidth)
     const originY = -(coords.y * halfHeight + halfHeight)
+    const tempZoom = this.zoom
     this.zoom = camera.zoom
-    if (this.zoom <= 0) this.zoom = this.zoomStep
+    if (this.zoom < 0) this.zoom = 0.0001
     this._gridSize = this.zoom * this._scaleStepOrigin;
     if (this.gridChange) {
       const step = this._getScaleStep();
       this._scaleStep = step;
       this._gridSize = this._scaleStep * this.zoom;
+    }
+    if (this._gridSize < this.minGridSize) {
+      // if minGridSize is greater than the minimum of scaleStepList, gridSize will be changed when gridSize > minGridSize
+      this._gridSize = this.minGridSize
+      this.zoom = tempZoom // reset zoom, greater than minGridSize
     }
     this.reDraw(-originX - halfWidth, originY + halfHeight, this.zoom)
   }
@@ -196,21 +204,16 @@ class Ruler {
     this._isDrag = false;
   }
   _wheelEvent(e) {
+    const scale = this._getZoomScale(e.deltaY);
     if (e.deltaY > 0) {
       // 缩小
-      this.zoom -= this.zoomStep
-
-      // this.zoom = this.zoom * (this._zoomOrigin - this.zoomStep);
-      // this._gridSize = this._gridSize * (this._zoomOrigin - this.zoomStep);
-
+      this._scale /= scale;
     } else {
       // 放大
-      this.zoom += this.zoomStep;
-      // this.zoom = this.zoom / (this._zoomOrigin - this.zoomStep);
-      // this._gridSize = this._gridSize / (this._zoomOrigin - this.zoomStep);
+      this._scale *= scale;
     }
-    this.zoom = parseFloat(this.zoom.toFixed(2))
-    if (this.zoom <= 0) this.zoom = this.zoomStep
+    this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom / this._scale));
+    if (this.zoom <= 0) this.zoom = 0.0001
     this._gridSize = this.zoom * this._scaleStepOrigin;
 
     // 平移
@@ -218,14 +221,15 @@ class Ruler {
     const centerY = this.dom.height / 2;
     const dx = e.offsetX - centerX;
     const dy = e.offsetY - centerY;
-    const nx = this.x + dx * this.zoomStep;
-    const ny = this.y + dy * this.zoomStep;
+    // const nx = this.x + dx * this.zoomStep;
+    // const ny = this.y + dy * this.zoomStep;
     if (this.gridChange) {
       const step = this._getScaleStep();
       this._scaleStep = step;
       this._gridSize = this._scaleStep * this.zoom;
     }
-    this.reDraw(nx, ny, this.zoom);
+    this.reDraw(0, 0, this.zoom);
+    this._scale = 1;
   }
   _getScaleStep() {
     const origin = this._scaleStepList.indexOf(this._scaleStepOrigin);
@@ -245,6 +249,10 @@ class Ruler {
       }
     }
     return this._scaleStep
+  }
+  _getZoomScale(delta) {
+    const normalizedDelta = Math.abs(delta / 100);
+    return Math.pow(0.95, this.zoomSpeed * normalizedDelta);
   }
   destroy() {
     if (this.listener) {
