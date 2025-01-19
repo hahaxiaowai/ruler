@@ -71,6 +71,14 @@ class Ruler {
     this.checkParameter();
   }
   checkParameter() {
+    for (let i = 0; i < this.scaleStepList.length; i++) {
+      if (this.scaleStepList[i] < 0) {
+        throw new Error('scaleStepList must be greater than 0')
+      }
+      if (i > 0 && this.scaleStepList[i] <= this.scaleStepList[i - 1]) {
+        throw new Error('scaleStepList must be from small to large')
+      }
+    }
     if (this.scaleStepList.indexOf(this.scaleStep) < 0) {
       throw new Error('scaleStep must be one of scaleStepList')
     }
