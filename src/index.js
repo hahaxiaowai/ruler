@@ -68,9 +68,9 @@ class Ruler {
     // 均为像素，非标尺比例
     this.x = 0;
     this.y = 0;
-    this.checkParameter();
+    this._checkParameter();
   }
-  checkParameter() {
+  _checkParameter() {
     for (let i = 0; i < this.scaleStepList.length; i++) {
       if (this.scaleStepList[i] < 0) {
         throw new Error('scaleStepList must be greater than 0')
@@ -242,11 +242,15 @@ class Ruler {
       this.zoom = tempZoom // reset zoom, greater than minGridSize
     }
     // 平移
-    const beforeZoom = this._unproject(e.offsetX, e.offsetY, tempZoom);
-    const afterZoom = this._unproject(e.offsetX, e.offsetY);
+    const beforeZoom = this.unproject(e.offsetX, e.offsetY, tempZoom);
+    const afterZoom = this.unproject(e.offsetX, e.offsetY);
     const nx = this.x - beforeZoom.x + afterZoom.x;
     const ny = this.y - beforeZoom.y + afterZoom.y;
-    this.reDraw(nx, ny, this.zoom);
+    if (this.zoomToCursor) {
+      this.reDraw(nx, ny, this.zoom);
+    } else {
+      this.reDraw(this.x, this.y, this.zoom);
+    }
     this._scale = 1;
   }
   // 接近哪个刻度，就返回哪个刻度
@@ -277,7 +281,7 @@ class Ruler {
     return Math.pow(0.95, this.zoomSpeed * normalizedDelta);
   }
   // 鼠标坐标转换为世界坐标(像素)
-  _unproject(x, y, zoom = this.zoom) {
+  unproject(x, y, zoom = this.zoom) {
     const halfWidth = this.dom.width / 2;
     const halfHeight = this.dom.height / 2;
     return {
@@ -285,7 +289,7 @@ class Ruler {
       y: (y - halfHeight) / zoom - this.y
     }
   }
-  // 世界坐标(像素)转换为鼠标坐标
+  // 世界坐标(像素)转换为刻度尺坐标
   toScale(x, y) {
     return {
       x: x / this._scaleGridRatio,
