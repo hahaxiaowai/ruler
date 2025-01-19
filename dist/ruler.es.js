@@ -56,7 +56,7 @@ var Ruler = /*#__PURE__*/function () {
   return _createClass(Ruler, [{
     key: "_initRuler",
     value: function _initRuler(options) {
-      var _options$grid, _options$gridChange, _options$dragButton, _options$listener;
+      var _options$grid, _options$minGridSize, _options$gridChange, _options$reverseY, _options$zoomToCursor, _options$dragButton, _options$listener;
       // canvas
       if (this.dom.width === 300 && this.dom.height === 150) {
         this.dom.width = this.dom.parentElement.clientWidth;
@@ -69,6 +69,7 @@ var Ruler = /*#__PURE__*/function () {
       // grid
       this.grid = (_options$grid = options.grid) !== null && _options$grid !== void 0 ? _options$grid : true;
       this._gridSize = 50;
+      this.minGridSize = (_options$minGridSize = options.minGridSize) !== null && _options$minGridSize !== void 0 ? _options$minGridSize : 20;
       this.gridChange = (_options$gridChange = options.gridChange) !== null && _options$gridChange !== void 0 ? _options$gridChange : true;
       // ruler
       this.rulerWidth = options.rulerWidth || 20;
@@ -77,16 +78,22 @@ var Ruler = /*#__PURE__*/function () {
       this.scaleHeight = options.scaleHeight || 6;
       this.topNumberPadding = options.topNumberPadding || 11;
       this.leftNumberPadding = options.leftNumberPadding || 2;
-      this._scaleStepList = [1, 2, 5, 10, 25, 50, 100, 150, 300, 750, 1500]; // 必须从小到大
-      this._scaleStep = 50; // 必须是scaleStepList中的一个 标尺上的数值
-      this._scaleStepOrigin = this._scaleStep;
+      this.scaleStepList = options.scaleStepList || [1, 2, 5, 10, 25, 50, 100, 150, 300]; // 必须从小到大
+      this.scaleStep = options.scaleStep || this.scaleStepList[0]; // 必须是scaleStepList中的一个 标尺上的数值
+      this._scaleOrigin = this.scaleStep;
+      this._scaleGridRatio = this._gridSize / this.scaleStep; // 标尺上的数值和像素的比例
+      this.reverseY = (_options$reverseY = options.reverseY) !== null && _options$reverseY !== void 0 ? _options$reverseY : false;
+      // zoom
+      this.zoom = 1;
+      this._scale = 1;
+      this.minZoom = 0;
+      this.maxZoom = Infinity;
       this._zoomRatioList = [];
-      for (var i = 0; i < this._scaleStepList.length; i++) {
-        this._zoomRatioList.push(this._scaleStepList[i] / this._scaleStepOrigin);
+      for (var i = 0; i < this.scaleStepList.length; i++) {
+        this._zoomRatioList.push(this.scaleStepList[i] / this.scaleStep);
       }
-      if (this._scaleStepList.indexOf(this._scaleStep) < 0) {
-        throw new Error('scaleStep must be one of _scaleStepList');
-      }
+      this.zoomSpeed = options.zoomSpeed || 1;
+      this.zoomToCursor = (_options$zoomToCursor = options.zoomToCursor) !== null && _options$zoomToCursor !== void 0 ? _options$zoomToCursor : true;
       // event
       this._isDrag = false;
       this.dragButton = (_options$dragButton = options.dragButton) !== null && _options$dragButton !== void 0 ? _options$dragButton : 0;
@@ -102,12 +109,25 @@ var Ruler = /*#__PURE__*/function () {
       this._isBindThree = false;
       this._controls = null;
       // translate
+      // 均为像素，非标尺比例
       this.x = 0;
       this.y = 0;
-      // scale
-      this._zoomOrigin = 1;
-      this.zoom = 1;
-      this.zoomStep = options.zoomStep || 0.2;
+      this.checkParameter();
+    }
+  }, {
+    key: "checkParameter",
+    value: function checkParameter() {
+      for (var i = 0; i < this.scaleStepList.length; i++) {
+        if (this.scaleStepList[i] < 0) {
+          throw new Error('scaleStepList must be greater than 0');
+        }
+        if (i > 0 && this.scaleStepList[i] <= this.scaleStepList[i - 1]) {
+          throw new Error('scaleStepList must be from small to large');
+        }
+      }
+      if (this.scaleStepList.indexOf(this.scaleStep) < 0) {
+        throw new Error('scaleStep must be one of scaleStepList');
+      }
     }
   }, {
     key: "reDraw",
@@ -147,7 +167,7 @@ var Ruler = /*#__PURE__*/function () {
         this.ctx.closePath();
         this.ctx.fillText(drawXNum, drawX, this.topNumberPadding);
         drawX += this._gridSize;
-        drawXNum += this._scaleStep;
+        drawXNum += this.scaleStep;
       }
       var drawY = startY;
       var drawYNum = startYNum;
@@ -164,10 +184,10 @@ var Ruler = /*#__PURE__*/function () {
         this.ctx.save();
         this.ctx.translate(margin - this.leftNumberPadding, drawY);
         this.ctx.rotate(-Math.PI / 2);
-        this.ctx.fillText(drawYNum, 0, 0);
+        this.ctx.fillText(drawYNum * (this.reverseY ? -1 : 1), 0, 0);
         this.ctx.restore();
         drawY += this._gridSize;
-        drawYNum += this._scaleStep;
+        drawYNum += this.scaleStep;
       }
     }
   }, {
@@ -178,19 +198,19 @@ var Ruler = /*#__PURE__*/function () {
       var screenY = this.y + this.dom.height / 2;
       var n = Math.floor(screenX / gridSize);
       var startX = screenX - n * gridSize;
-      var startXNum = -n * this._scaleStep;
+      var startXNum = -n * this.scaleStep;
       // 最左侧如果和Y轴标尺重叠，则向右+1
       if (startX < this.rulerWidth) {
         startX += gridSize;
-        startXNum += this._scaleStep;
+        startXNum += this.scaleStep;
       }
       var n2 = Math.floor(screenY / gridSize);
       var startY = screenY - n2 * gridSize;
-      var startYNum = -n2 * this._scaleStep;
+      var startYNum = -n2 * this.scaleStep;
       // 同上
       if (startY < this.rulerWidth) {
         startY += gridSize;
-        startYNum += this._scaleStep;
+        startYNum += this.scaleStep;
       }
       return {
         startX: startX,
@@ -203,7 +223,7 @@ var Ruler = /*#__PURE__*/function () {
     key: "bindThreeCamera",
     value: function bindThreeCamera(camera, controls, origin) {
       this._isBindThree = true;
-      this.controls = controls;
+      this._controls = controls;
       this._events.three = this._threeEvent.bind(this, camera, origin);
       controls.addEventListener('change', this._events.three);
     }
@@ -215,13 +235,19 @@ var Ruler = /*#__PURE__*/function () {
       var halfHeight = this.dom.height / 2;
       var originX = -(coords.x * halfWidth + halfWidth);
       var originY = -(coords.y * halfHeight + halfHeight);
+      var tempZoom = this.zoom;
       this.zoom = camera.zoom;
-      if (this.zoom <= 0) this.zoom = this.zoomStep;
-      this._gridSize = this.zoom * this._scaleStepOrigin;
+      if (this.zoom < 0) this.zoom = 0.0001;
+      this._gridSize = this.zoom * this._scaleGridRatio;
       if (this.gridChange) {
         var step = this._getScaleStep();
-        this._scaleStep = step;
-        this._gridSize = this._scaleStep * this.zoom;
+        this.scaleStep = step;
+        this._gridSize = this.scaleStep * this.zoom * this._scaleGridRatio;
+      }
+      if (this._gridSize < this.minGridSize) {
+        // if minGridSize is greater than the minimum of scaleStepList, gridSize will be changed when gridSize > minGridSize
+        this._gridSize = this.minGridSize;
+        this.zoom = tempZoom; // reset zoom, greater than minGridSize
       }
       this.reDraw(-originX - halfWidth, originY + halfHeight, this.zoom);
     }
@@ -267,40 +293,41 @@ var Ruler = /*#__PURE__*/function () {
   }, {
     key: "_wheelEvent",
     value: function _wheelEvent(e) {
+      var scale = this._getZoomScale(e.deltaY);
       if (e.deltaY > 0) {
         // 缩小
-        this.zoom -= this.zoomStep;
-
-        // this.zoom = this.zoom * (this._zoomOrigin - this.zoomStep);
-        // this._gridSize = this._gridSize * (this._zoomOrigin - this.zoomStep);
+        this._scale /= scale;
       } else {
         // 放大
-        this.zoom += this.zoomStep;
-        // this.zoom = this.zoom / (this._zoomOrigin - this.zoomStep);
-        // this._gridSize = this._gridSize / (this._zoomOrigin - this.zoomStep);
+        this._scale *= scale;
       }
-      this.zoom = parseFloat(this.zoom.toFixed(2));
-      if (this.zoom <= 0) this.zoom = this.zoomStep;
-      this._gridSize = this.zoom * this._scaleStepOrigin;
-
-      // 平移
-      var centerX = this.dom.width / 2;
-      var centerY = this.dom.height / 2;
-      var dx = e.offsetX - centerX;
-      var dy = e.offsetY - centerY;
-      var nx = this.x + dx * this.zoomStep;
-      var ny = this.y + dy * this.zoomStep;
+      var tempZoom = this.zoom;
+      this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom / this._scale));
+      if (this.zoom <= 0) this.zoom = 0.0001;
+      this._gridSize = this.zoom * this._scaleGridRatio;
       if (this.gridChange) {
         var step = this._getScaleStep();
-        this._scaleStep = step;
-        this._gridSize = this._scaleStep * this.zoom;
+        this.scaleStep = step;
+        this._gridSize = this.scaleStep * this.zoom * this._scaleGridRatio;
       }
+      if (this._gridSize < this.minGridSize) {
+        // if minGridSize is greater than the minimum of scaleStepList, gridSize will be changed when gridSize > minGridSize
+        this._gridSize = this.minGridSize;
+        this.zoom = tempZoom; // reset zoom, greater than minGridSize
+      }
+      // 平移
+      var beforeZoom = this._unproject(e.offsetX, e.offsetY, tempZoom);
+      var afterZoom = this._unproject(e.offsetX, e.offsetY);
+      var nx = this.x - beforeZoom.x + afterZoom.x;
+      var ny = this.y - beforeZoom.y + afterZoom.y;
       this.reDraw(nx, ny, this.zoom);
+      this._scale = 1;
     }
+    // 接近哪个刻度，就返回哪个刻度
   }, {
     key: "_getScaleStep",
     value: function _getScaleStep() {
-      var origin = this._scaleStepList.indexOf(this._scaleStepOrigin);
+      var origin = this.scaleStepList.indexOf(this._scaleOrigin);
       for (var i = 1; i < this._zoomRatioList.length; i++) {
         if (this.zoom >= this._zoomRatioList[i - 1] && this.zoom < this._zoomRatioList[i]) {
           var left = this.zoom - this._zoomRatioList[i - 1];
@@ -313,10 +340,41 @@ var Ruler = /*#__PURE__*/function () {
           }
           if (index > this._zoomRatioList.length - 1) index = this._zoomRatioList.length - 1;
           if (index < 0) index = 0;
-          return this._scaleStepList[index];
+          return this.scaleStepList[index];
         }
       }
-      return this._scaleStep;
+      return this.scaleStep;
+    }
+    // 跨过哪个刻度，就返回哪个刻度
+  }, {
+    key: "_getScaleStep2",
+    value: function _getScaleStep2() {}
+  }, {
+    key: "_getZoomScale",
+    value: function _getZoomScale(delta) {
+      var normalizedDelta = Math.abs(delta / 100);
+      return Math.pow(0.95, this.zoomSpeed * normalizedDelta);
+    }
+    // 鼠标坐标转换为世界坐标(像素)
+  }, {
+    key: "_unproject",
+    value: function _unproject(x, y) {
+      var zoom = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.zoom;
+      var halfWidth = this.dom.width / 2;
+      var halfHeight = this.dom.height / 2;
+      return {
+        x: (x - halfWidth) / zoom - this.x,
+        y: (y - halfHeight) / zoom - this.y
+      };
+    }
+    // 世界坐标(像素)转换为鼠标坐标
+  }, {
+    key: "toScale",
+    value: function toScale(x, y) {
+      return {
+        x: x / this._scaleGridRatio,
+        y: y / this._scaleGridRatio * (this.reverseY ? -1 : 1)
+      };
     }
   }, {
     key: "destroy",
@@ -326,6 +384,10 @@ var Ruler = /*#__PURE__*/function () {
         this.dom.removeEventListener('mousemove', this._events.mouseMove);
         this.dom.removeEventListener('mouseup', this._events.mouseUp);
         this.dom.removeEventListener('wheel', this._events.wheel);
+      }
+      if (this._isBindThree) {
+        this._controls.removeEventListener('change', this._events.three);
+        this._controls = null;
       }
     }
   }]);
