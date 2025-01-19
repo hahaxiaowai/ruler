@@ -37,6 +37,7 @@ class Ruler {
     this.scaleStep = options.scaleStep || this.scaleStepList[0]; // 必须是scaleStepList中的一个 标尺上的数值
     this._scaleOrigin = this.scaleStep;
     this._scaleGridRatio = this._gridSize / this.scaleStep // 标尺上的数值和像素的比例
+    this.reverseY = options.reverseY ?? false;
     // zoom
     this.zoom = 1;
     this._scale = 1;
@@ -64,6 +65,7 @@ class Ruler {
     this._isBindThree = false;
     this._controls = null;
     // translate
+    // 均为像素，非标尺比例
     this.x = 0;
     this.y = 0;
     this.checkParameter();
@@ -120,10 +122,10 @@ class Ruler {
       this.ctx.save();
       this.ctx.translate(margin - this.leftNumberPadding, drawY);
       this.ctx.rotate(-Math.PI / 2);
-      this.ctx.fillText(drawYNum, 0, 0);
+      this.ctx.fillText(drawYNum * (this.reverseY ? -1 : 1), 0, 0);
       this.ctx.restore();
       drawY += this._gridSize;
-      drawYNum += this.scaleStep;
+      drawYNum += this.scaleStep
     }
   }
   _getStartAndEnd() {
@@ -232,13 +234,11 @@ class Ruler {
       this.zoom = tempZoom // reset zoom, greater than minGridSize
     }
     // 平移
-    const centerX = this.dom.width / 2;
-    const centerY = this.dom.height / 2;
-    const dx = e.offsetX - centerX;
-    const dy = e.offsetY - centerY;
-    // const nx = this.x + dx * this.zoomStep;
-    // const ny = this.y + dy * this.zoomStep;
-    this.reDraw(0, 0, this.zoom);
+    const beforeZoom = this._unproject(e.offsetX, e.offsetY, tempZoom);
+    const afterZoom = this._unproject(e.offsetX, e.offsetY);
+    const nx = this.x - beforeZoom.x + afterZoom.x;
+    const ny = this.y - beforeZoom.y + afterZoom.y;
+    this.reDraw(nx, ny, this.zoom);
     this._scale = 1;
   }
   // 接近哪个刻度，就返回哪个刻度
@@ -267,6 +267,22 @@ class Ruler {
   _getZoomScale(delta) {
     const normalizedDelta = Math.abs(delta / 100);
     return Math.pow(0.95, this.zoomSpeed * normalizedDelta);
+  }
+  // 鼠标坐标转换为世界坐标(像素)
+  _unproject(x, y, zoom = this.zoom) {
+    const halfWidth = this.dom.width / 2;
+    const halfHeight = this.dom.height / 2;
+    return {
+      x: (x - halfWidth) / zoom - this.x,
+      y: (y - halfHeight) / zoom - this.y
+    }
+  }
+  // 世界坐标(像素)转换为鼠标坐标
+  toScale(x, y) {
+    return {
+      x: x / this._scaleGridRatio,
+      y: y / this._scaleGridRatio * (this.reverseY ? -1 : 1)
+    }
   }
   destroy() {
     if (this.listener) {
