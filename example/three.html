@@ -1,53 +1,55 @@
 <!DOCTYPE html>
 <html lang="zh">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ruler.js</title>
-  </head>
-  <style>
-    *,
-    body {
-      margin: 0px;
-      padding: 0px;
-    }
 
-    .top {
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-    }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ruler.js</title>
+</head>
+<style>
+  *,
+  body {
+    margin: 0px;
+    padding: 0px;
+  }
 
-    #rulerBox {
-      position: absolute;
-      top: 0;
-      pointer-events: none;
-    }
+  .top {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+  }
 
-    #threeContainer {
-      height: 100vh;
-      width: 100vw;
-    }
-    .source {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      z-index: 999;
-      color: black;
-      font-size: 1.3rem;
-      background-color: rgb(221, 216, 216);
-    }
-  </style>
+  #rulerBox {
+    position: absolute;
+    top: 0;
+    pointer-events: none;
+  }
 
-  <body>
-    <div class="top">
-      <a class="source" href="https://github.com/hahaxiaowai/ruler/blob/main/example/three.html" target="_blank">源码</a>
-      <canvas id="rulerBox"></canvas>
-      <div id="threeContainer"></div>
-    </div>
-  </body>
-  <script type="importmap">
+  #threeContainer {
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .source {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 999;
+    color: black;
+    font-size: 1.3rem;
+    background-color: rgb(221, 216, 216);
+  }
+</style>
+
+<body>
+  <div class="top">
+    <a class="source" href="https://github.com/hahaxiaowai/ruler/blob/main/example/three.html" target="_blank">源码</a>
+    <canvas id="rulerBox"></canvas>
+    <div id="threeContainer"></div>
+  </div>
+</body>
+<script type="importmap">
     {
       "imports": {
         "three": "./lib/three.module.js",
@@ -55,68 +57,69 @@
       }
     }
   </script>
-  <script type="module">
-    import Ruler from "../src/index.js";
-    import * as THREE from "three";
-    import { MapControls } from "three/addons/controls/MapControls.js";
-    console.log(THREE);
-    const ruler = new Ruler("rulerBox");
-    let camera, scene, renderer, stats, controls;
-    initThree();
-    function initThree() {
-      const container = document.getElementById("threeContainer");
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color("rgb(255,255,255)");
-      camera = new THREE.OrthographicCamera(
-        container.offsetWidth / -2,
-        container.offsetWidth / 2,
-        container.offsetHeight / 2,
-        container.offsetHeight / -2,
-        1,
-        10000
-      );
-      camera.updateProjectionMatrix();
-      scene.add(camera);
-      camera.position.set(0, 100, 0);
-      scene.add(new THREE.AmbientLight(0x666666));
-      const axesHelper = new THREE.AxesHelper(1000);
-      axesHelper.position.set(0, 0, 0);
-      scene.add(axesHelper);
-      const size = 100;
-      const divisions = 100;
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setSize(container.offsetWidth, container.offsetHeight);
-      container.appendChild(renderer.domElement);
-      controls = new MapControls(camera, renderer.domElement);
-      controls.maxPolarAngle = Math.PI * 0.5;
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.enableRotate = false;
-      main(container);
-      renderer.setAnimationLoop(() => {
-        controls.update();
-        renderer.render(scene, camera);
-      });
-    }
-    function main(container) {
-      const geometry = new THREE.PlaneGeometry(100, 100);
-      const material = new THREE.MeshBasicMaterial({
-        color: "green",
-        side: THREE.DoubleSide,
-        transparent: true,
-      });
-      const plane = new THREE.Mesh(geometry, material);
-      plane.rotateX(-Math.PI / 2);
-      plane.rotateZ(Math.PI / 2);
-      scene.add(plane);
-      const origin = new THREE.Vector3(0, 0, 0);
-      ruler.bindThreeCamera(
-        camera,
-        controls,
-        origin,
-        new THREE.Vector3(100, 0, 0)
-      );
-    }
-  </script>
+<script type="module">
+  import Ruler from "../src/index.js";
+  import * as THREE from "three";
+  import { MapControls } from "three/addons/controls/MapControls.js";
+  console.log(THREE);
+  const ruler = new Ruler("rulerBox", { scaleStep: 50 });
+  let camera, scene, renderer, stats, controls;
+  initThree();
+  function initThree() {
+    const container = document.getElementById("threeContainer");
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color("rgb(255,255,255)");
+    camera = new THREE.OrthographicCamera(
+      container.offsetWidth / -2,
+      container.offsetWidth / 2,
+      container.offsetHeight / 2,
+      container.offsetHeight / -2,
+      1,
+      10000
+    );
+    camera.updateProjectionMatrix();
+    scene.add(camera);
+    camera.position.set(0, 100, 0);
+    scene.add(new THREE.AmbientLight(0x666666));
+    const axesHelper = new THREE.AxesHelper(1000);
+    axesHelper.position.set(0, 0, 0);
+    scene.add(axesHelper);
+    const size = 100;
+    const divisions = 100;
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.offsetWidth, container.offsetHeight);
+    container.appendChild(renderer.domElement);
+    controls = new MapControls(camera, renderer.domElement);
+    controls.maxPolarAngle = Math.PI * 0.5;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableRotate = false;
+    main(container);
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(scene, camera);
+    });
+  }
+  function main(container) {
+    const geometry = new THREE.PlaneGeometry(100, 100);
+    const material = new THREE.MeshBasicMaterial({
+      color: "green",
+      side: THREE.DoubleSide,
+      transparent: true,
+    });
+    const plane = new THREE.Mesh(geometry, material);
+    plane.rotateX(-Math.PI / 2);
+    plane.rotateZ(Math.PI / 2);
+    scene.add(plane);
+    const origin = new THREE.Vector3(0, 0, 0);
+    ruler.bindThreeCamera(
+      camera,
+      controls,
+      origin,
+      new THREE.Vector3(100, 0, 0)
+    );
+  }
+</script>
+
 </html>
